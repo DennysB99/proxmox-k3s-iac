@@ -1,0 +1,81 @@
+---
+- name: Configure K3s Kubernetes Cluster System Requirements
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure system packages are up to date
+      apt:
+        update_cache: yes
+        upgrade: dist
+      tags: system
+
+    - name: Ensure required system utilities are installed
+      apt:
+        name: [iptables, curl]
+        state: present
+
+    # Crucial Debian 13 Kernel adjustment for Kubernetes cgroups
+    - name: Enable cgroups in GRUB for Kubernetes
+      lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX="(.*)"'
+        line: 'GRUB_CMDLINE_LINUX="\1 cgroup_enable=cpuset cgroup_memory=1 status=all"'
+        backrefs: yes
+      register: grub_updated
+
+    - name: Apply GRUB updates
+      command: update-grub
+      when: grub_updated.changed
+
+    - name: Reboot nodes to apply system changes
+      reboot:
+        msg: "Rebooting to enable cgroups"
+      when: grub_updated.changed
+
+# ---------------------------------------------
+# 1. SETUP THE MASTER NODE
+# ---------------------------------------------
+- name: Initialize K3s Master
+  hosts: masters
+  become: true
+  tasks:
+    - name: Download and install K3s on Master
+      shell: "curl -sfL https://get.k3s.io | sh -s - --disable servicelb --disable traefik --node-name {{ inventory_hostname }} --with-node-id"
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for the node-token file to be created
+      wait_for:
+        path: /var/lib/rancher/k3s/server/node-token
+        timeout: 60
+
+    - name: Fetch the secure cluster join token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_encoded
+
+    - name: Save token to memory
+      set_fact:
+        k3s_token: "{{ k3s_token_encoded['content'] | b64decode | trim }}"
+
+# ---------------------------------------------
+# 2. SETUP THE WORKER NODE
+# ---------------------------------------------
+- name: Join Workers to the Cluster
+  hosts: workers
+  become: true
+  tasks:
+    - name: Clear out any stuck K3s residue from previous failed runs
+      shell: "k3s-agent-uninstall.sh || true"
+      ignore_errors: yes
+
+    - name: Clean up old password files from template cloning
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/rancher/node/password
+        - /var/lib/rancher/k3s/agent/serving-kubelet.crt
+
+    - name: Install K3s Agent and join Master with a Unique Identity
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ hostvars[groups['masters'][0]]['ansible_host'] }}:6443 K3S_TOKEN={{ hostvars[groups['masters'][0]]['k3s_token'] }} sh -s - --node-name {{ inventory_hostname }} --with-node-id"

@@ -1,0 +1,18 @@
+# Kubernetes Cluster Security Tokens (DO NOT COMMIT)
+**/.kube/
+**/config
+*.yaml
+*.token
+
+# Terraform Local Cache & State File Databases
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Packer Builds & Temporary Cache Downloads
+*.iso
+packer_cache/
+
+# OS Specific Hidden Files
+.DS_Store
