@@ -2,18 +2,15 @@ name: K3s Hardware Runner Test
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  verify-homelab-connection:
+  verify-homelab:
     runs-on: k3s-homelab-pool
     steps:
-      - name: Checkout Repository Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Print Execution Confirmation
-        run: |
-          echo "Pipeline successfully routing into local Proxmox hardware."
-          echo "Current execution timestamp: $(date)"
+      - name: Hello World Log
+        run: echo "The runner is actively taking action inside your cluster!"
