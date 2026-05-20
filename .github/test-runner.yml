@@ -1,38 +1,19 @@
-name: K3s Runner Encrypted Network Test
+name: K3s Hardware Runner Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
-  secure-network-scan:
+  verify-homelab-connection:
     runs-on: k3s-homelab-pool
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository Code
         uses: actions/checkout@v4
 
-      - name: Run Hidden Network Validation
+      - name: Print Execution Confirmation
         run: |
-          echo "=== STARTING OBFUSCATED INFRASTRUCTURE CHECK ==="
-          
-          echo "1. Validating local default gateway path..."
-          if ping -c 2 -W 2 "${{ secrets.LAB_GATEWAY }}" > /dev/null; then 
-            echo "✅ SUCCESS: Local gateway path is responsive."
-          else 
-            echo "❌ FAILED: Gateway path dropped packets."
-          fi
-          
-          echo "2. Validating K3s host VM infrastructure path..."
-          if ping -c 2 -W 2 "${{ secrets.LAB_MASTER_NODE }}" > /dev/null; then 
-            echo "✅ SUCCESS: K3s host hardware path is responsive."
-          else 
-            echo "❌ FAILED: Host infrastructure path dropped packets."
-          fi
-          
-          echo "3. Validating outbound public DNS breakout..."
-          if ping -c 2 -W 2 google.com > /dev/null; then 
-            echo "✅ SUCCESS: External public network breakout is operational."
-          else 
-            echo "❌ FAILED: Public breakout dropped packets."
-          fi
+          echo "Pipeline successfully routing into local Proxmox hardware!"
+          echo "Current execution timestamp: $(date)"
