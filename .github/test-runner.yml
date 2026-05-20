@@ -15,5 +15,5 @@ jobs:
 
       - name: Print Execution Confirmation
         run: |
-          echo "Pipeline successfully routing into local Proxmox hardware!"
+          echo "Pipeline successfully routing into local Proxmox hardware."
           echo "Current execution timestamp: $(date)"
